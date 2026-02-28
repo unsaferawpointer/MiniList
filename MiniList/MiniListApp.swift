@@ -10,7 +10,7 @@ import SwiftUI
 @main
 struct MiniListApp: App {
     var body: some Scene {
-        DocumentGroup(newDocument: MiniListDocument()) { file in
+        DocumentGroup(newDocument: ListDocument()) { file in
             ContentView(document: file.$document)
         }
     }

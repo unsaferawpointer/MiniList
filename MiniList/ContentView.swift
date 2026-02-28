@@ -8,13 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
-    @Binding var document: MiniListDocument
 
-    var body: some View {
-        TextEditor(text: $document.text)
-    }
+	@Binding var document: ListDocument
+
+	var body: some View {
+		List {
+			ForEach(0..<10) { index in
+				Text("Todo Tod \(index)")
+			}
+		}
+	}
 }
 
 #Preview {
-    ContentView(document: .constant(MiniListDocument()))
+	ContentView(document: .constant(ListDocument()))
 }
