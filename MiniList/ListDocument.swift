@@ -10,10 +10,10 @@ import UniformTypeIdentifiers
 
 nonisolated struct ListDocument: FileDocument {
 
-	var text: String
+	var lines: [Line]
 
-	init(text: String = "Hello, world!") {
-		self.text = text
+	init(lines: [Line] = []) {
+		self.lines = lines
 	}
 
 	static let readableContentTypes = [
@@ -26,10 +26,16 @@ nonisolated struct ListDocument: FileDocument {
 		else {
 			throw CocoaError(.fileReadCorruptFile)
 		}
-		text = string
+		var result: [Line] = []
+		string.enumerateLines { text, stop in
+			let line = Line(isCompleted: false, text: text)
+			result.append(line)
+		}
+		self.lines = result
 	}
 
 	func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+		let text = lines.map(\.text).joined(separator: "\n")
 		let data = text.data(using: .utf8)!
 		return .init(regularFileWithContents: data)
 	}
