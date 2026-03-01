@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
 	
@@ -29,6 +30,34 @@ struct ContentView: View {
 				.onDelete { indices in
 					withAnimation {
 						document.deleteLines(with: indices)
+					}
+				}
+				.onInsert(of: [.plainText]) { target, providers in
+					for provider in providers {
+						_ = provider.loadObject(ofClass: NSString.self) { object, _ in
+							guard let text = object as? String else {
+								return
+							}
+
+							let values = text
+								.split(whereSeparator: \.isNewline)
+								.map(String.init)
+								.filter { !$0.isEmpty }
+							let lines = values.isEmpty ? [text] : values
+
+							Task { @MainActor in
+								withAnimation {
+									var insertionIndex = min(target, document.content.lines.count)
+									for value in lines {
+										document.content.lines.insert(
+											Line(isCompleted: false, text: value),
+											at: insertionIndex
+										)
+										insertionIndex += 1
+									}
+								}
+							}
+						}
 					}
 				}
 			}
