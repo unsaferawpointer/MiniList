@@ -15,7 +15,7 @@ struct MiniListApp: App {
 
 	var body: some Scene {
 		DocumentGroup(newDocument: ListDocument()) { file in
-			ContentView(document: file.$document)
+			ContentView(content: file.$document.content)
 		}
 		.commands {
 			CommandMenu("Editor") {

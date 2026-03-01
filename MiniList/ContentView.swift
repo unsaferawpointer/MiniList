@@ -9,25 +9,25 @@ import SwiftUI
 
 struct ContentView: View {
 	
-	@Binding var document: ListDocument
-	
+	@Binding var content: ListContent
+
 	@State private var selection: Set<UUID> = []
 	
 	var body: some View {
 		NavigationStack {
 			List(selection: $selection) {
-				ForEach($document.lines) { $line in
+				ForEach($content.lines) { $line in
 					LineView(line: $line)
 						.listRowSeparator(.hidden)
 						.listRowInsets(.horizontal, 8)
 						.id(line.id)
 				}
 				.onMove { indices, target in
-					document.lines.move(fromOffsets: indices, toOffset: target)
+					content.lines.move(fromOffsets: indices, toOffset: target)
 				}
 				.onDelete { indices in
 					withAnimation {
-						document.lines.remove(atOffsets: indices)
+						content.lines.remove(atOffsets: indices)
 					}
 				}
 			}
@@ -66,7 +66,7 @@ struct ContentView: View {
 					Button {
 						let new = Line(isCompleted: false, text: "New")
 						withAnimation {
-							document.lines.append(new)
+							content.lines.append(new)
 						}
 					} label: {
 						Label("Add", systemImage: "plus")
@@ -79,14 +79,14 @@ struct ContentView: View {
 
 extension ContentView {
 	func sources(for selected: Set<UUID>) -> [Binding<Bool>] {
-		document.lines.indices.compactMap { index in
-			guard selected.contains(document.lines[index].id) else {
+		content.lines.indices.compactMap { index in
+			guard selected.contains(content.lines[index].id) else {
 				return nil
 			}
 			return Binding {
-				document.lines[index].isCompleted
+				content.lines[index].isCompleted
 			} set: { newValue in
-				document.lines[index].isCompleted = newValue
+				content.lines[index].isCompleted = newValue
 			}
 		}
 	}
@@ -96,17 +96,17 @@ extension ContentView {
 			return
 		}
 		
-		let selectedIndices = document.lines.indices.filter { index in
-			selected.contains(document.lines[index].id)
+		let selectedIndices = content.lines.indices.filter { index in
+			selected.contains(content.lines[index].id)
 		}
 		let isAllCompleted = selectedIndices.allSatisfy { index in
-			document.lines[index].isCompleted
+			content.lines[index].isCompleted
 		}
 		let newValue = !isAllCompleted
 		
 		withAnimation {
 			selectedIndices.forEach { index in
-				document.lines[index].isCompleted = newValue
+				content.lines[index].isCompleted = newValue
 			}
 		}
 	}
@@ -117,7 +117,7 @@ extension ContentView {
 		}
 		
 		withAnimation {
-			document.lines.removeAll {
+			content.lines.removeAll {
 				selected.contains($0.id)
 			}
 		}
@@ -125,5 +125,5 @@ extension ContentView {
 }
 
 #Preview {
-	ContentView(document: .constant(ListDocument()))
+	ContentView(content: .constant(ListContent()))
 }

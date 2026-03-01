@@ -10,13 +10,13 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSHandlerRank</key>
-			<string>Default</string>
+			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>dev.zeroindex.mini-list</string>
+				<string>dev.zeroindex.minilist</string>
 			</array>
 			<key>NSUbiquitousDocumentUserActivityType</key>
-			<string>$(PRODUCT_BUNDLE_IDENTIFIER).exampledocument</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).minilist</string>
 		</dict>
 	</array>
 	<key>UTImportedTypeDeclarations</key>
@@ -24,19 +24,19 @@
 		<dict>
 			<key>UTTypeConformsTo</key>
 			<array>
-				<string>public.plain-text</string>
+				<string>public.json</string>
 			</array>
 			<key>UTTypeDescription</key>
 			<string>List</string>
 			<key>UTTypeIcons</key>
 			<dict/>
 			<key>UTTypeIdentifier</key>
-			<string>dev.zeroindex.mini-list</string>
+			<string>dev.zeroindex.minilist</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>mini-list</string>
+					<string>minilist</string>
 				</array>
 			</dict>
 		</dict>

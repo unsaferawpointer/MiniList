@@ -22,6 +22,9 @@ struct Line {
 	}
 }
 
+// MARK: - Codable
+extension Line: Codable { }
+
 // MARK: - Identifiable
 extension Line: Identifiable {
 

@@ -10,33 +10,29 @@ import UniformTypeIdentifiers
 
 nonisolated struct ListDocument: FileDocument {
 
-	var lines: [Line]
+	// MARK: - Data
+
+	var content: ListContent
+
+	// MARK: - Initialization
 
 	init(lines: [Line] = []) {
-		self.lines = lines
+		self.content = .init(lines: lines)
 	}
 
 	static let readableContentTypes = [
-		UTType(importedAs: "dev.zeroindex.mini-list")
+		UTType(importedAs: "dev.zeroindex.minilist")
 	]
 
 	init(configuration: ReadConfiguration) throws {
-		guard let data = configuration.file.regularFileContents,
-			  let string = String(data: data, encoding: .utf8)
-		else {
+		guard let data = configuration.file.regularFileContents else {
 			throw CocoaError(.fileReadCorruptFile)
 		}
-		var result: [Line] = []
-		string.enumerateLines { text, stop in
-			let line = Line(isCompleted: false, text: text)
-			result.append(line)
-		}
-		self.lines = result
+		self.content = try JSONDecoder().decode(ListContent.self, from: data)
 	}
 
 	func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-		let text = lines.map(\.text).joined(separator: "\n")
-		let data = text.data(using: .utf8)!
+		let data = try JSONEncoder().encode(content)
 		return .init(regularFileWithContents: data)
 	}
 }
