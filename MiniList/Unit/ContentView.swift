@@ -7,13 +7,16 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(AppKit)
+import AppKit
+#endif
 
 struct ContentView: View {
-	
+
 	@Binding var document: ListDocument
 
 	@State private var selection: Set<UUID> = []
-	
+
 	var body: some View {
 		NavigationStack {
 			List(selection: $selection) {
@@ -21,6 +24,7 @@ struct ContentView: View {
 					LineView(line: $line)
 						.listRowSeparator(.hidden)
 						.listRowInsets(.horizontal, 8)
+						.draggable(line.text)
 				}
 				.onMove { indices, target in
 					withAnimation {
@@ -33,33 +37,17 @@ struct ContentView: View {
 					}
 				}
 				.onInsert(of: [.plainText]) { target, providers in
-					for provider in providers {
-						_ = provider.loadObject(ofClass: NSString.self) { object, _ in
-							guard let text = object as? String else {
-								return
-							}
-
-							let values = text
-								.split(whereSeparator: \.isNewline)
-								.map(String.init)
-								.filter { !$0.isEmpty }
-							let lines = values.isEmpty ? [text] : values
-
-							Task { @MainActor in
-								withAnimation {
-									var insertionIndex = min(target, document.content.lines.count)
-									for value in lines {
-										document.content.lines.insert(
-											Line(isCompleted: false, text: value),
-											at: insertionIndex
-										)
-										insertionIndex += 1
-									}
-								}
-							}
-						}
-					}
+					handleDrop(target: target, providers: providers)
 				}
+			}
+			.onCopyCommand {
+				copy()
+			}
+			.onCutCommand {
+				cut()
+			}
+			.onPasteCommand(of: [.plainText]) { providers in
+				paste(providers: providers)
 			}
 			.focusedValue(
 				\.deleteAction,
@@ -80,41 +68,65 @@ struct ContentView: View {
 				 )
 			)
 			.contextMenu(forSelectionType: UUID.self) { selected in
-				Toggle(sources: sources(for: selected), isOn: \.self) {
-					Text("Completed")
-				}
-				.disabled(selected.isEmpty)
-				Divider()
-				Button(role: .destructive) {
-					document.deleteLines(ids: selected)
-				} label: {
-					Label("Delete", systemImage: "trash")
-				}
+				buildMenu(selected: selected)
 			}
 			.toolbar {
-				ToolbarItem(placement: .primaryAction) {
-					Button {
-						withAnimation {
-							_ = document.insertLine(with: "New Item")
-						}
-					} label: {
-						Label("Add", systemImage: "plus")
-					}
-				}
+				buildToolbar()
 			}
 			.overlay {
 				if document.isEmpty {
-					ContentUnavailableView(
-						"List is Empty",
-						systemImage: "checklist",
-						description: Text("Add your first item to get started.")
-					)
-					.allowsHitTesting(false)
+					buildPlaceholder()
 				}
-			}
 			}
 		}
 	}
+}
+
+// MARK: - Builders
+private extension ContentView {
+
+	@ViewBuilder
+	func buildMenu(selected: Set<UUID>) -> some View {
+		Toggle(sources: sources(for: selected), isOn: \.self) {
+			Text("Completed")
+		}
+		.disabled(selected.isEmpty)
+		Divider()
+		Button(role: .destructive) {
+			document.deleteLines(ids: selected)
+		} label: {
+			Label("Delete", systemImage: "trash")
+		}
+	}
+
+	@ToolbarContentBuilder
+	func buildToolbar() -> some ToolbarContent {
+		ToolbarItem(placement: .primaryAction) {
+			Button {
+				withAnimation {
+					_ = document.insertLine(with: "New Item")
+				}
+			} label: {
+				Label("Add", systemImage: "plus")
+			}
+		}
+	}
+
+	@ViewBuilder
+	func buildPlaceholder() -> some View {
+		ContentUnavailableView(
+			"List is Empty",
+			systemImage: "checklist",
+			description: Text("Add your first item to get started.")
+		)
+		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.dropDestination(for: String.self) { items, _ in
+			withAnimation {
+				_ = document.insertText(items, to: nil)
+			}
+		}
+	}
+}
 
 // MARK: - Binding
 extension ContentView {
@@ -129,6 +141,76 @@ extension ContentView {
 			} set: { newValue in
 				document.content.lines[index].isCompleted = newValue
 			}
+		}
+	}
+
+	func copy() -> [NSItemProvider] {
+		let strings = document.content.lines
+			.filter { selection.contains($0.id) }
+			.map(\.text)
+
+		return strings.map {
+			NSItemProvider(object: $0 as NSString)
+		}
+	}
+
+	func cut() -> [NSItemProvider] {
+		let providers = copy()
+		guard !providers.isEmpty else {
+			return []
+		}
+		withAnimation {
+			document.deleteLines(ids: selection)
+			selection.removeAll()
+		}
+		return providers
+	}
+
+	func paste(providers: [NSItemProvider]) {
+		var max: Int?
+		for (index, line) in document.content.lines.enumerated().reversed() {
+			guard selection.contains(line.id) else {
+				continue
+			}
+			max = index
+			break
+		}
+		pasteProviders(providers, at: max)
+	}
+}
+
+// MARK: - Drop Support
+private extension ContentView {
+
+	func handleDrop(target: Int, providers: [NSItemProvider]) {
+		pasteProviders(providers, at: target)
+	}
+
+	func pasteProviders(_ providers: [NSItemProvider], at target: Int?) {
+		Task { @MainActor in
+			let strings = await strings(from: providers)
+			document.insertText(strings, to: target)
+		}
+	}
+
+	func strings(from providers: [NSItemProvider]) async -> [String] {
+		await withTaskGroup(of: String?.self, returning: [String].self) { group in
+			for provider in providers {
+				group.addTask {
+					return await withCheckedContinuation { continuation in
+						_ = provider.loadObject(ofClass: NSString.self) { object, _ in
+							continuation.resume(returning: object as? String)
+						}
+					}
+				}
+			}
+
+			var result: [String?] = []
+			for await value in group {
+				result.append(value)
+			}
+
+			return result.compactMap(\.self)
 		}
 	}
 }

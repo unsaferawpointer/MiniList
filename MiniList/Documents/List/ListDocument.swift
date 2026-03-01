@@ -46,6 +46,34 @@ extension ListDocument {
 
 extension ListDocument {
 
+	@discardableResult
+	mutating func insertText(_ strings: [String], to target: Int?) -> Bool {
+		let texts = strings
+			.flatMap { value in
+				value
+					.split(whereSeparator: \.isNewline)
+					.map(String.init)
+					.filter {
+						!$0.isEmpty
+					}
+			}
+
+		let newLines = texts.map { text in
+			Line(isCompleted: false, text: text)
+		}
+
+		guard let target else {
+			content.lines.append(contentsOf: newLines)
+			return true
+		}
+
+		content.lines.insert(contentsOf: newLines, at: target)
+		return true
+	}
+}
+
+extension ListDocument {
+
 	mutating func deleteLines(ids: Set<UUID>) {
 		guard !ids.isEmpty else {
 			return
