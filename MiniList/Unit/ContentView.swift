@@ -102,9 +102,19 @@ struct ContentView: View {
 					}
 				}
 			}
+			.overlay {
+				if document.isEmpty {
+					ContentUnavailableView(
+						"List is Empty",
+						systemImage: "checklist",
+						description: Text("Add your first item to get started.")
+					)
+					.allowsHitTesting(false)
+				}
+			}
+			}
 		}
 	}
-}
 
 // MARK: - Binding
 extension ContentView {

@@ -39,6 +39,13 @@ struct ListDocument: FileDocument {
 
 extension ListDocument {
 
+	var isEmpty: Bool {
+		content.lines.isEmpty
+	}
+}
+
+extension ListDocument {
+
 	mutating func deleteLines(ids: Set<UUID>) {
 		guard !ids.isEmpty else {
 			return
