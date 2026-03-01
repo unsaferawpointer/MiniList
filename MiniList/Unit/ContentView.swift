@@ -9,25 +9,26 @@ import SwiftUI
 
 struct ContentView: View {
 	
-	@Binding var content: ListContent
+	@Binding var document: ListDocument
 
 	@State private var selection: Set<UUID> = []
 	
 	var body: some View {
 		NavigationStack {
 			List(selection: $selection) {
-				ForEach($content.lines) { $line in
+				ForEach($document.content.lines) { $line in
 					LineView(line: $line)
 						.listRowSeparator(.hidden)
 						.listRowInsets(.horizontal, 8)
-						.id(line.id)
 				}
 				.onMove { indices, target in
-					content.lines.move(fromOffsets: indices, toOffset: target)
+					withAnimation {
+						document.moveLines(indices: indices, to: target)
+					}
 				}
 				.onDelete { indices in
 					withAnimation {
-						content.lines.remove(atOffsets: indices)
+						document.deleteLines(with: indices)
 					}
 				}
 			}
@@ -38,7 +39,7 @@ struct ContentView: View {
 					imageName: "trash",
 					isEnabled: !selection.isEmpty
 				 ) {
-					 deleteSelected(for: selection)
+					 document.deleteLines(ids: selection)
 				 }
 			)
 			.focusedValue(
@@ -56,7 +57,7 @@ struct ContentView: View {
 				.disabled(selected.isEmpty)
 				Divider()
 				Button(role: .destructive) {
-					deleteSelected(for: selected)
+					document.deleteLines(ids: selected)
 				} label: {
 					Label("Delete", systemImage: "trash")
 				}
@@ -64,9 +65,8 @@ struct ContentView: View {
 			.toolbar {
 				ToolbarItem(placement: .primaryAction) {
 					Button {
-						let new = Line(isCompleted: false, text: "New")
 						withAnimation {
-							content.lines.append(new)
+							_ = document.insertLine(with: "New Item")
 						}
 					} label: {
 						Label("Add", systemImage: "plus")
@@ -77,53 +77,23 @@ struct ContentView: View {
 	}
 }
 
+// MARK: - Binding
 extension ContentView {
+
 	func sources(for selected: Set<UUID>) -> [Binding<Bool>] {
-		content.lines.indices.compactMap { index in
-			guard selected.contains(content.lines[index].id) else {
+		document.content.lines.indices.compactMap { index in
+			guard selected.contains(document.content.lines[index].id) else {
 				return nil
 			}
 			return Binding {
-				content.lines[index].isCompleted
+				document.content.lines[index].isCompleted
 			} set: { newValue in
-				content.lines[index].isCompleted = newValue
-			}
-		}
-	}
-	
-	func toggleCompleted(for selected: Set<UUID>) {
-		guard !selected.isEmpty else {
-			return
-		}
-		
-		let selectedIndices = content.lines.indices.filter { index in
-			selected.contains(content.lines[index].id)
-		}
-		let isAllCompleted = selectedIndices.allSatisfy { index in
-			content.lines[index].isCompleted
-		}
-		let newValue = !isAllCompleted
-		
-		withAnimation {
-			selectedIndices.forEach { index in
-				content.lines[index].isCompleted = newValue
-			}
-		}
-	}
-	
-	func deleteSelected(for selected: Set<UUID>) {
-		guard !selected.isEmpty else {
-			return
-		}
-		
-		withAnimation {
-			content.lines.removeAll {
-				selected.contains($0.id)
+				document.content.lines[index].isCompleted = newValue
 			}
 		}
 	}
 }
 
 #Preview {
-	ContentView(content: .constant(ListContent()))
+	ContentView(document: .constant(ListDocument()))
 }

@@ -8,7 +8,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-nonisolated struct ListDocument: FileDocument {
+struct ListDocument: FileDocument {
 
 	// MARK: - Data
 
@@ -34,5 +34,42 @@ nonisolated struct ListDocument: FileDocument {
 	func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
 		let data = try JSONEncoder().encode(content)
 		return .init(regularFileWithContents: data)
+	}
+}
+
+extension ListDocument {
+
+	mutating func deleteLines(ids: Set<UUID>) {
+		guard !ids.isEmpty else {
+			return
+		}
+		content.lines.removeAll { line in
+			ids.contains(line.id)
+		}
+	}
+
+	mutating func deleteLines(with indices: IndexSet) {
+		content.lines.remove(atOffsets: indices)
+	}
+
+	@discardableResult
+	mutating func insertLine(with text: String) -> UUID {
+		let newLine = Line(isCompleted: false, text: text)
+		content.lines.append(newLine)
+		return newLine.id
+	}
+
+	mutating func updateText(for id: UUID, newValue: String) {
+		guard let index = content.lines.firstIndex(where: { $0.id == id }) else {
+			return
+		}
+		content.lines[index].text = newValue
+	}
+
+	mutating func moveLines(indices: IndexSet, to target: Int) {
+		guard !indices.isEmpty else {
+			return
+		}
+		content.lines.move(fromOffsets: indices, toOffset: target)
 	}
 }
