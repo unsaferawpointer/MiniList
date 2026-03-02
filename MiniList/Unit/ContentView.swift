@@ -25,6 +25,7 @@ struct ContentView: View {
 					LineView(line: $line)
 						.listRowSeparator(.hidden)
 						.listRowInsets(.horizontal, 8)
+						.listRowInsets(.vertical, 6)
 						.draggable(line.text)
 				}
 				.onMove { indices, target in
