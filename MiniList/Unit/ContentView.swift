@@ -16,6 +16,7 @@ struct ContentView: View {
 	@Binding var document: ListDocument
 
 	@State private var selection: Set<UUID> = []
+	@State private var isPlaceholderDropTargeted = false
 
 	var body: some View {
 		NavigationStack {
@@ -115,14 +116,38 @@ private extension ContentView {
 	@ViewBuilder
 	func buildPlaceholder() -> some View {
 		ContentUnavailableView(
-			"List is Empty",
-			systemImage: "checklist",
-			description: Text("Add your first item to get started.")
+			isPlaceholderDropTargeted ? "Drop to Add Items" : "List is Empty",
+			systemImage: isPlaceholderDropTargeted ? "square.and.arrow.down" : "checklist",
+			description: Text(
+				isPlaceholderDropTargeted
+				? "Release to add text as new items."
+				: "Add your first item to get started."
+			)
 		)
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
+		.background {
+			if isPlaceholderDropTargeted {
+				RoundedRectangle(cornerRadius: 14, style: .continuous)
+					.fill(.blue.opacity(0.08))
+					.padding(16)
+			}
+		}
+		.overlay {
+			RoundedRectangle(cornerRadius: 14, style: .continuous)
+				.stroke(
+					isPlaceholderDropTargeted ? Color.blue : Color.clear,
+					lineWidth: 2
+				)
+				.padding(16)
+		}
 		.dropDestination(for: String.self) { items, _ in
 			withAnimation {
 				_ = document.insertText(items, to: nil)
+			}
+			return true
+		} isTargeted: { isTargeted in
+			withAnimation(.easeInOut(duration: 0.12)) {
+				isPlaceholderDropTargeted = isTargeted
 			}
 		}
 	}
