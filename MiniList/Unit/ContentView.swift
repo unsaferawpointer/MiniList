@@ -7,9 +7,6 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
-#if canImport(AppKit)
-import AppKit
-#endif
 
 struct ContentView: View {
 
@@ -125,6 +122,7 @@ private extension ContentView {
 				: "Add your first item to get started."
 			)
 		)
+		.accessibilityIdentifier("empty-list-placeholder")
 		.frame(maxWidth: .infinity, maxHeight: .infinity)
 		.background {
 			if isPlaceholderDropTargeted {
@@ -155,20 +153,24 @@ private extension ContentView {
 }
 
 // MARK: - Binding
-extension ContentView {
+private extension ContentView {
 
 	func sources(for selected: Set<UUID>) -> [Binding<Bool>] {
 		document.content.lines.indices.compactMap { index in
-			guard selected.contains(document.content.lines[index].id) else {
+			guard selected.contains(document[index].id) else {
 				return nil
 			}
 			return Binding {
-				document.content.lines[index].isCompleted
+				document[index].isCompleted
 			} set: { newValue in
-				document.content.lines[index].isCompleted = newValue
+				document[index].isCompleted = newValue
 			}
 		}
 	}
+}
+
+// MARK: - Copy / Paste Support
+private extension ContentView {
 
 	func copy() -> [NSItemProvider] {
 		let strings = document.content.lines

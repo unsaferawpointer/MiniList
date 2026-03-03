@@ -37,6 +37,19 @@ struct ListDocument: FileDocument {
 	}
 }
 
+// MARK: - Subscript
+extension ListDocument {
+
+	subscript(_ index: Int) -> Line {
+		get {
+			content.lines[index]
+		}
+		set {
+			content.lines[index] = newValue
+		}
+	}
+}
+
 extension ListDocument {
 
 	var isEmpty: Bool {
