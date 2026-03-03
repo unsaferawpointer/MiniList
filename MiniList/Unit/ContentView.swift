@@ -49,6 +49,18 @@ struct ContentView: View {
 				paste(providers: providers)
 			}
 			.focusedValue(
+				\.addAction,
+				 ButtonAction(
+					title: "New Item",
+					imageName: "plus",
+					isEnabled: true
+				 ) {
+					 withAnimation {
+						 _ = document.insertLine(with: "New Item")
+					 }
+				 }
+			)
+			.focusedValue(
 				\.deleteAction,
 				 ButtonAction(
 					title: "Delete",

@@ -9,6 +9,11 @@ import SwiftUI
 
 extension FocusedValues {
 
+	var addAction: ButtonAction<AddAction>? {
+		get { self[ActionKey<ButtonAction<AddAction>>.self] }
+		set { self[ActionKey<ButtonAction<AddAction>>.self] = newValue }
+	}
+
 	var deleteAction: ButtonAction<DeleteAction>? {
 		get { self[ActionKey<ButtonAction<DeleteAction>>.self] }
 		set { self[ActionKey<ButtonAction<DeleteAction>>.self] = newValue }
@@ -19,6 +24,8 @@ extension FocusedValues {
 		set { self[ActionKey<ToggleAction<CompletionAction>>.self] = newValue }
 	}
 }
+
+enum AddAction { }
 
 enum DeleteAction { }
 
