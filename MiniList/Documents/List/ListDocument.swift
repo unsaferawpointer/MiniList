@@ -74,13 +74,29 @@ extension ListDocument {
 		let newLines = texts.map { text in
 			Line(isCompleted: false, text: text)
 		}
+		return insertLines(newLines, to: target)
+	}
+
+	@discardableResult
+	mutating func insertLines(_ lines: [Line], to target: Int?) -> Bool {
+		guard !lines.isEmpty else {
+			return false
+		}
+
+		let copiedLines = lines.map { line in
+			Line(
+				isCompleted: line.isCompleted,
+				isMarked: line.isMarked,
+				text: line.text
+			)
+		}
 
 		guard let target else {
-			content.lines.append(contentsOf: newLines)
+			content.lines.append(contentsOf: copiedLines)
 			return true
 		}
 
-		content.lines.insert(contentsOf: newLines, at: target)
+		content.lines.insert(contentsOf: copiedLines, at: target)
 		return true
 	}
 }

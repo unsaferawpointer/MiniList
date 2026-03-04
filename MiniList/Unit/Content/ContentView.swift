@@ -15,16 +15,18 @@ struct ContentView: View {
 	@State private var selection: Set<UUID> = []
 	@State private var isPlaceholderDropTargeted = false
 
+	private let dropManager = DropManager()
+
 	var body: some View {
 		NavigationStack {
-			List(selection: $selection) {
-				ForEach($document.content.lines) { $line in
-					LineView(line: $line)
-						.listRowSeparator(.hidden)
-						.listRowInsets(.horizontal, 8)
-						.listRowInsets(.vertical, 6)
-						.draggable(line.text)
-				}
+				List(selection: $selection) {
+						ForEach($document.content.lines) { $line in
+							LineView(line: $line)
+							.listRowSeparator(.hidden)
+							.listRowInsets(.horizontal, 8)
+							.listRowInsets(.vertical, 6)
+							.draggable(line)
+					}
 				.onMove { indices, target in
 					withAnimation {
 						document.moveLines(indices: indices, to: target)
@@ -35,7 +37,7 @@ struct ContentView: View {
 						document.deleteLines(with: indices)
 					}
 				}
-				.onInsert(of: [.plainText]) { target, providers in
+				.onInsert(of: [.line, .plainText]) { target, providers in
 					handleDrop(target: target, providers: providers)
 				}
 			}
@@ -228,29 +230,8 @@ private extension ContentView {
 
 	func pasteProviders(_ providers: [NSItemProvider], at target: Int?) {
 		Task { @MainActor in
-			let strings = await strings(from: providers)
-			document.insertText(strings, to: target)
-		}
-	}
-
-	func strings(from providers: [NSItemProvider]) async -> [String] {
-		await withTaskGroup(of: String?.self, returning: [String].self) { group in
-			for provider in providers {
-				group.addTask {
-					return await withCheckedContinuation { continuation in
-						_ = provider.loadObject(ofClass: NSString.self) { object, _ in
-							continuation.resume(returning: object as? String)
-						}
-					}
-				}
-			}
-
-			var result: [String?] = []
-			for await value in group {
-				result.append(value)
-			}
-
-			return result.compactMap(\.self)
+			let lines = await dropManager.lines(from: providers)
+			document.insertLines(lines, to: target)
 		}
 	}
 }

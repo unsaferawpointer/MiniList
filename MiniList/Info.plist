@@ -41,5 +41,18 @@
 			</dict>
 		</dict>
 	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Line</string>
+			<key>UTTypeIdentifier</key>
+			<string>dev.zeroindex.minilist.line</string>
+		</dict>
+	</array>
 </dict>
 </plist>
