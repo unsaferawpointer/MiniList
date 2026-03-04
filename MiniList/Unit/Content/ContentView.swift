@@ -51,19 +51,19 @@ struct ContentView: View {
 			.focusedValue(
 				\.addAction,
 				 ButtonAction(
-					title: "New Item",
+					title: ContentStrings.Action.newItemTitle,
 					imageName: "plus",
 					isEnabled: true
 				 ) {
 					 withAnimation {
-						 _ = document.insertLine(with: "New Item")
+						 _ = document.insertLine(with: ContentStrings.Action.newItemTitle)
 					 }
 				 }
 			)
 			.focusedValue(
 				\.deleteAction,
 				 ButtonAction(
-					title: "Delete",
+					title: ContentStrings.Action.deleteTitle,
 					imageName: "trash",
 					isEnabled: !selection.isEmpty
 				 ) {
@@ -73,7 +73,7 @@ struct ContentView: View {
 			.focusedValue(
 				\.completionAction,
 				 ToggleAction(
-					title: "Completed",
+					title: ContentStrings.Action.completedTitle,
 					source: sources(for: selection),
 					isEnabled: !selection.isEmpty
 				 )
@@ -99,14 +99,14 @@ private extension ContentView {
 	@ViewBuilder
 	func buildMenu(selected: Set<UUID>) -> some View {
 		Toggle(sources: sources(for: selected), isOn: \.self) {
-			Text("Completed")
+			Text(ContentStrings.Action.completedTitle)
 		}
 		.disabled(selected.isEmpty)
 		Divider()
 		Button(role: .destructive) {
 			document.deleteLines(ids: selected)
 		} label: {
-			Label("Delete", systemImage: "trash")
+			Label(ContentStrings.Action.deleteTitle, systemImage: "trash")
 		}
 	}
 
@@ -115,10 +115,10 @@ private extension ContentView {
 		ToolbarItem(placement: .primaryAction) {
 			Button {
 				withAnimation {
-					_ = document.insertLine(with: "New Item")
+					_ = document.insertLine(with: ContentStrings.Action.newItemTitle)
 				}
 			} label: {
-				Label("Add", systemImage: "plus")
+				Label(ContentStrings.Action.addTitle, systemImage: "plus")
 			}
 		}
 	}
@@ -126,12 +126,12 @@ private extension ContentView {
 	@ViewBuilder
 	func buildPlaceholder() -> some View {
 		ContentUnavailableView(
-			isPlaceholderDropTargeted ? "Drop to Add Items" : "List is Empty",
+			isPlaceholderDropTargeted ? ContentStrings.Placeholder.Drop.title : ContentStrings.Placeholder.Empty.title,
 			systemImage: isPlaceholderDropTargeted ? "square.and.arrow.down" : "checklist",
 			description: Text(
 				isPlaceholderDropTargeted
-				? "Release to add text as new items."
-				: "Add your first item to get started."
+				? ContentStrings.Placeholder.Drop.message
+				: ContentStrings.Placeholder.Empty.message
 			)
 		)
 		.accessibilityIdentifier("empty-list-placeholder")

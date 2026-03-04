@@ -33,7 +33,7 @@ extension LineView: View {
 			Circle()
 				.foregroundStyle(.tertiary)
 				.frame(width: 4, height: 4)
-			TextField("Required", text: $text)
+			TextField(ContentStrings.Line.requiredPlaceholder, text: $text)
 				.foregroundStyle(line.isCompleted ? .tertiary : .primary)
 				.focused($focus)
 				.onSubmit {
