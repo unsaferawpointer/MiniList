@@ -19,14 +19,19 @@ struct ContentView: View {
 
 	var body: some View {
 		NavigationStack {
-				List(selection: $selection) {
-						ForEach($document.content.lines) { $line in
-							LineView(line: $line)
-							.listRowSeparator(.hidden)
-							.listRowInsets(.horizontal, 8)
-							.listRowInsets(.vertical, 6)
-							.draggable(line)
+			List(selection: $selection) {
+				ForEach($document.content.lines) { $line in
+					LineView(line: $line)
+						.listRowSeparator(.hidden)
+						.listRowInsets(.horizontal, 8)
+						.listRowInsets(.vertical, 6)
+						.draggable(line)
+				}
+				.dropDestination(for: Line.self) { lines, index in
+					withAnimation {
+						_ = document.insertLines(lines, to: index)
 					}
+				}
 				.onMove { indices, target in
 					withAnimation {
 						document.moveLines(indices: indices, to: target)
@@ -36,9 +41,6 @@ struct ContentView: View {
 					withAnimation {
 						document.deleteLines(with: indices)
 					}
-				}
-				.onInsert(of: [.line, .plainText]) { target, providers in
-					handleDrop(target: target, providers: providers)
 				}
 			}
 			.onCopyCommand {
