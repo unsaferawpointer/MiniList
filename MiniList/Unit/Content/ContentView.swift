@@ -5,6 +5,7 @@
 //  Created by Anton Cherkasov on 28.02.2026.
 //
 
+import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -43,15 +44,17 @@ struct ContentView: View {
 					}
 				}
 			}
-			.onCopyCommand {
-				copy()
-			}
-			.onCutCommand {
-				cut()
-			}
-			.onPasteCommand(of: [.plainText]) { providers in
-				paste(providers: providers)
-			}
+			.onCopyCommand(perform: copyCommand)
+			.onCutCommand(perform: cutCommand)
+			.onPasteCommand(
+				of: [.line, .plainText],
+				validator: { providers in
+					validatePaste(providers)
+				},
+				perform: { providers in
+					paste(providers: providers)
+				}
+			)
 			.focusedValue(
 				\.addAction,
 				 ButtonAction(
@@ -155,9 +158,9 @@ private extension ContentView {
 				)
 				.padding(16)
 		}
-		.dropDestination(for: String.self) { items, _ in
+		.dropDestination(for: Line.self) { lines, _ in
 			withAnimation {
-				_ = document.insertText(items, to: nil)
+				_ = document.insertLines(lines, to: nil)
 			}
 			return true
 		} isTargeted: { isTargeted in
@@ -188,13 +191,51 @@ private extension ContentView {
 // MARK: - Copy / Paste Support
 private extension ContentView {
 
-	func copy() -> [NSItemProvider] {
-		let strings = document.content.lines
-			.filter { selection.contains($0.id) }
-			.map(\.text)
+	var canCopy: Bool {
+		!selection.isEmpty
+	}
 
-		return strings.map {
-			NSItemProvider(object: $0 as NSString)
+	var copyCommand: (() -> [NSItemProvider])? {
+		canCopy ? { copy() } : nil
+	}
+
+	var cutCommand: (() -> [NSItemProvider])? {
+		canCopy ? { cut() } : nil
+	}
+
+	func canPaste(_ providers: [NSItemProvider]) -> Bool {
+		providers.contains { provider in
+			provider.hasItemConformingToTypeIdentifier(UTType.line.identifier) ||
+			provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+		}
+	}
+
+	func validatePaste(_ providers: [NSItemProvider]) -> [NSItemProvider] {
+		providers.filter { provider in
+			provider.hasItemConformingToTypeIdentifier(UTType.line.identifier) ||
+			provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
+		}
+	}
+
+	func copy() -> [NSItemProvider] {
+		guard canCopy else {
+			return []
+		}
+		return selectedLines.map { line in
+			let provider = NSItemProvider(object: line.text as NSString)
+			provider.registerDataRepresentation(
+				forTypeIdentifier: UTType.line.identifier,
+				visibility: .all
+			) { completion in
+				do {
+					let data = try JSONEncoder().encode(line)
+					completion(data, nil)
+				} catch {
+					completion(nil, error)
+				}
+				return nil
+			}
+			return provider
 		}
 	}
 
@@ -211,6 +252,9 @@ private extension ContentView {
 	}
 
 	func paste(providers: [NSItemProvider]) {
+		guard canPaste(providers) else {
+			return
+		}
 		var max: Int?
 		for (index, line) in document.content.lines.enumerated().reversed() {
 			guard selection.contains(line.id) else {
@@ -220,6 +264,10 @@ private extension ContentView {
 			break
 		}
 		pasteProviders(providers, at: max)
+	}
+
+	var selectedLines: [Line] {
+		document.content.lines.filter { selection.contains($0.id) }
 	}
 }
 
