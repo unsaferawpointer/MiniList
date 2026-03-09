@@ -31,8 +31,13 @@ extension LineView: View {
 	var body: some View {
 		HStack(alignment: .firstTextBaseline) {
 			(line.iconName ?? .none).image
-				.foregroundStyle(.tertiary)
+				.foregroundStyle(
+					line.isCompleted
+						? .tertiary
+						: line.iconColor?.color ?? .tertiary
+				)
 				.font(.footnote)
+				.frame(width: 12, alignment: .center)
 			TextField(ContentStrings.Line.requiredPlaceholder, text: $text)
 				.foregroundStyle(line.isCompleted ? .tertiary : .primary)
 				.font(.body)

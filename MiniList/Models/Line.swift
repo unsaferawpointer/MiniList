@@ -14,6 +14,7 @@ struct Line {
 	var isCompleted: Bool
 	var text: String
 	var iconName: IconName?
+	var iconColor: IconColor?
 
 	// MARK: - Initialization
 
@@ -21,12 +22,14 @@ struct Line {
 		uuid: UUID = UUID(),
 		isCompleted: Bool = false,
 		text: String,
-		iconName: IconName = .none
+		iconName: IconName = .none,
+		iconColor: IconColor = .secondary
 	) {
 		self.uuid = uuid
 		self.isCompleted = isCompleted
 		self.text = text
 		self.iconName = iconName
+		self.iconColor = iconColor
 	}
 }
 
@@ -53,4 +56,3 @@ extension Line: Identifiable {
 		uuid
 	}
 }
-

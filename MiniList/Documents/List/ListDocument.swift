@@ -66,7 +66,12 @@ extension ListDocument {
 		}
 
 		let copiedLines = lines.map { line in
-			Line(isCompleted: line.isCompleted, text: line.text)
+			Line(
+				isCompleted: line.isCompleted,
+				text: line.text,
+				iconName: line.iconName ?? .none,
+				iconColor: line.iconColor ?? .secondary
+			)
 		}
 
 		guard let target else {

@@ -5,13 +5,8 @@
 //  Created by Anton Cherkasov on 28.02.2026.
 //
 
-import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
-import CoreTransferable
-#if os(macOS)
-import AppKit
-#endif
 
 struct ContentView: View {
 
@@ -71,7 +66,7 @@ struct ContentView: View {
 			\.completionAction,
 			 ToggleAction(
 				title: ContentStrings.Action.completedTitle,
-				source: sources(for: model.selection),
+				source: model.completionSources(for: model.selection, in: $document),
 				isEnabled: model.isCompletionAvailable
 			 )
 		)
@@ -94,8 +89,35 @@ private extension ContentView {
 
 	@ViewBuilder
 	func buildMenu(selected: Set<UUID>) -> some View {
-		Toggle(sources: sources(for: selected), isOn: \.self) {
+		Toggle(sources: model.completionSources(for: selected, in: $document), isOn: \.self) {
 			Text(ContentStrings.Action.completedTitle)
+		}
+		.disabled(selected.isEmpty)
+		Divider()
+		Menu(ContentStrings.Action.iconTitle) {
+			ForEach(IconName.allCases) { icon in
+				Button {
+					model.set(iconName: icon, for: selected, in: $document)
+				} label: {
+					Label {
+						Text(icon.title)
+					} icon: {
+						icon.image
+					}
+				}
+			}
+		}
+		.disabled(selected.isEmpty)
+		Menu(ContentStrings.Action.tintTitle) {
+			ForEach(IconColor.allCases) { color in
+				Button {
+					model.set(iconColor: color, for: selected, in: $document)
+				} label: {
+					Label(color.title, systemImage: "circle.fill")
+						.tint(color.color)
+						.foregroundStyle(color.color)
+				}
+			}
 		}
 		.disabled(selected.isEmpty)
 		Divider()
@@ -138,23 +160,6 @@ private extension ContentView {
 		)
 		.onDrop(of: [.plainText], isTargeted: $model.isTargeted) { providers in
 			return handleDrop(providers, to: nil)
-		}
-	}
-}
-
-// MARK: - Binding
-private extension ContentView {
-
-	func sources(for selected: Set<UUID>) -> [Binding<Bool>] {
-		document.content.lines.indices.compactMap { index in
-			guard selected.contains(document[index].id) else {
-				return nil
-			}
-			return Binding {
-				document[index].isCompleted
-			} set: { newValue in
-				document[index].isCompleted = newValue
-			}
 		}
 	}
 }

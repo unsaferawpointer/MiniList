@@ -14,6 +14,8 @@ enum ContentStrings {
 		static let newItemTitle = String(localized: "action.new_item", table: "ContentLocalizable")
 		static let deleteTitle = String(localized: "action.delete", table: "ContentLocalizable")
 		static let completedTitle = String(localized: "action.completed", table: "ContentLocalizable")
+		static let iconTitle = String(localized: "action.icon", table: "ContentLocalizable")
+		static let tintTitle = String(localized: "action.tint", table: "ContentLocalizable")
 	}
 
 	enum Placeholder {

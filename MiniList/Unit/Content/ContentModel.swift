@@ -34,6 +34,50 @@ extension ContentModel {
 	}
 }
 
+// MARK: - Binding
+extension ContentModel {
+
+	func completionSources(for selected: Set<UUID>, in document: Binding<ListDocument>) -> [Binding<Bool>] {
+		document.content.lines.indices.compactMap { index -> Binding<Bool>? in
+			guard selected.contains(document[index].id) else {
+				return nil
+			}
+			return Binding {
+				document[index].wrappedValue.isCompleted
+			} set: { newValue in
+				document[index].wrappedValue.isCompleted = newValue
+			}
+		}
+	}
+}
+
+extension ContentModel {
+
+	func set(iconName: IconName, for selected: Set<UUID>, in document: Binding<ListDocument>) {
+		guard !selected.isEmpty else {
+			return
+		}
+		for index in document.content.lines.indices {
+			guard selected.contains(document[index].id) else {
+				continue
+			}
+			document[index].wrappedValue.iconName = iconName
+		}
+	}
+
+	func set(iconColor: IconColor, for selected: Set<UUID>, in document: Binding<ListDocument>) {
+		guard !selected.isEmpty else {
+			return
+		}
+		for index in document.content.lines.indices {
+			guard selected.contains(document[index].id) else {
+				continue
+			}
+			document[index].wrappedValue.iconColor = iconColor
+		}
+	}
+}
+
 extension ContentModel {
 
 	func clearSelection() {
