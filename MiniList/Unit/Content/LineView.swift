@@ -29,10 +29,10 @@ struct LineView {
 extension LineView: View {
 
 	var body: some View {
-		HStack {
-			Circle()
+		HStack(alignment: .firstTextBaseline) {
+			(line.iconName ?? .none).image
 				.foregroundStyle(.tertiary)
-				.frame(width: 4, height: 4)
+				.font(.footnote)
 			TextField(ContentStrings.Line.requiredPlaceholder, text: $text)
 				.foregroundStyle(line.isCompleted ? .tertiary : .primary)
 				.font(.body)

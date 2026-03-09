@@ -13,17 +13,20 @@ struct Line {
 	let uuid: UUID
 	var isCompleted: Bool
 	var text: String
+	var iconName: IconName?
 
 	// MARK: - Initialization
 
 	nonisolated init(
 		uuid: UUID = UUID(),
 		isCompleted: Bool = false,
-		text: String
+		text: String,
+		iconName: IconName = .none
 	) {
 		self.uuid = uuid
 		self.isCompleted = isCompleted
 		self.text = text
+		self.iconName = iconName
 	}
 }
 
