@@ -32,20 +32,6 @@ struct PasteboardManager {
 			return provider
 		}
 	}
-
-	func hasData(in providers: [NSItemProvider]) -> Bool {
-		providers.contains { provider in
-			let type = UTType.plainText.identifier
-			return provider.hasItemConformingToTypeIdentifier(type)
-		}
-	}
-
-	func filtered(providers: [NSItemProvider]) -> [NSItemProvider] {
-		providers.filter {
-			let type = UTType.plainText.identifier
-			return $0.hasItemConformingToTypeIdentifier(type)
-		}
-	}
 }
 
 // MARK: - Helpers

@@ -17,15 +17,11 @@ struct ContentView: View {
 
 	@Binding var document: ListDocument
 
-	@State private var selection: Set<UUID> = []
-	@State private var isPlaceholderDropTargeted = false
-
-	private let dropManager = PasteboardManager()
-	private let textProcessor = TextProcessor()
+	@Bindable var model = ContentModel()
 
 	var body: some View {
 		NavigationStack {
-			List(selection: $selection) {
+			List(selection: $model.selection) {
 				ForEach($document.content.lines) { $line in
 					LineView(line: $line)
 						.listRowSeparator(.hidden)
@@ -42,13 +38,10 @@ struct ContentView: View {
 					_ = handleDrop(providers, to: target)
 				}
 			}
-			.onCopyCommand(perform: copyCommand)
-			.onCutCommand(perform: cutCommand)
-				.onPasteCommand(
-					of: [.plainText],
-				validator: { providers in
-					validatePaste(providers)
-				},
+			.onCopyCommand(perform: model.canCopy ? { copy() } : nil)
+			.onCutCommand(perform: model.canCopy ? { cut() } : nil)
+			.onPasteCommand(
+				of: [.plainText],
 				perform: { providers in
 					paste(providers: providers)
 				}
@@ -70,17 +63,17 @@ struct ContentView: View {
 				 ButtonAction(
 					title: ContentStrings.Action.deleteTitle,
 					imageName: "trash",
-					isEnabled: !selection.isEmpty
+					isEnabled: model.isDeletionAvailable
 				 ) {
-					 document.deleteLines(ids: selection)
+					 document.deleteLines(ids: model.selection)
 				 }
 			)
 			.focusedValue(
 				\.completionAction,
 				 ToggleAction(
 					title: ContentStrings.Action.completedTitle,
-					source: sources(for: selection),
-					isEnabled: !selection.isEmpty
+					source: sources(for: model.selection),
+					isEnabled: model.isCompletionAvailable
 				 )
 			)
 			.contextMenu(forSelectionType: UUID.self) { selected in
@@ -130,33 +123,22 @@ private extension ContentView {
 
 	@ViewBuilder
 	func buildPlaceholder() -> some View {
-		ContentUnavailableView(
-			isPlaceholderDropTargeted ? ContentStrings.Placeholder.Drop.title : ContentStrings.Placeholder.Empty.title,
-			systemImage: isPlaceholderDropTargeted ? "square.and.arrow.down" : "checklist",
-			description: Text(
-				isPlaceholderDropTargeted
-				? ContentStrings.Placeholder.Drop.message
-				: ContentStrings.Placeholder.Empty.message
-			)
+		PlaceholderView(
+			imageName:
+				model.isTargeted
+			? "square.and.arrow.down"
+			: "list.bullet.rectangle.portrait",
+			title:
+				model.isTargeted
+			? ContentStrings.Placeholder.Drop.title
+			: ContentStrings.Placeholder.Empty.title,
+			message:
+				model.isTargeted
+			? ContentStrings.Placeholder.Drop.message
+			: ContentStrings.Placeholder.Empty.message,
+			isTargeted: $model.isTargeted
 		)
-		.accessibilityIdentifier("empty-list-placeholder")
-		.frame(maxWidth: .infinity, maxHeight: .infinity)
-		.background {
-			if isPlaceholderDropTargeted {
-				RoundedRectangle(cornerRadius: 14, style: .continuous)
-					.fill(.blue.opacity(0.08))
-					.padding(16)
-			}
-		}
-		.overlay {
-			RoundedRectangle(cornerRadius: 14, style: .continuous)
-				.stroke(
-					isPlaceholderDropTargeted ? Color.blue : Color.clear,
-					lineWidth: 2
-				)
-				.padding(16)
-		}
-		.onDrop(of: [.plainText], isTargeted: $isPlaceholderDropTargeted) { providers in
+		.onDrop(of: [.plainText], isTargeted: $model.isTargeted) { providers in
 			return handleDrop(providers, to: nil)
 		}
 	}
@@ -164,17 +146,6 @@ private extension ContentView {
 
 // MARK: - Binding
 private extension ContentView {
-
-	@discardableResult
-	func handleDrop(_ providers: [NSItemProvider], to target: Int?) -> Bool {
-		Task { @MainActor in
-			let lines = await dropManager.lines(from: providers)
-			withAnimation {
-				_ = document.insertLines(lines, to: target)
-			}
-		}
-		return true
-	}
 
 	func sources(for selected: Set<UUID>) -> [Binding<Bool>] {
 		document.content.lines.indices.compactMap { index in
@@ -193,52 +164,23 @@ private extension ContentView {
 // MARK: - Copy / Paste Support
 private extension ContentView {
 
-	var canCopy: Bool {
-		!selection.isEmpty
-	}
-
-	var copyCommand: (() -> [NSItemProvider])? {
-		canCopy ? { copy() } : nil
-	}
-
-	var cutCommand: (() -> [NSItemProvider])? {
-		canCopy ? { cut() } : nil
-	}
-
-	func canPaste(_ providers: [NSItemProvider]) -> Bool {
-		dropManager.hasData(in: providers)
-	}
-
-	func validatePaste(_ providers: [NSItemProvider]) -> [NSItemProvider] {
-		dropManager.filtered(providers: providers)
-	}
-
 	func copy() -> [NSItemProvider] {
-		guard canCopy else {
-			return []
-		}
-		return dropManager.providers(for: selectedLines)
+		return model.providers(in: document)
 	}
 
 	func cut() -> [NSItemProvider] {
 		let providers = copy()
-		guard !providers.isEmpty else {
-			return []
-		}
 		withAnimation {
-			document.deleteLines(ids: selection)
-			selection.removeAll()
+			document.deleteLines(ids: model.selection)
+			model.clearSelection()
 		}
 		return providers
 	}
 
 	func paste(providers: [NSItemProvider]) {
-		guard canPaste(providers) else {
-			return
-		}
 		var max: Int?
 		for (index, line) in document.content.lines.enumerated().reversed() {
-			guard selection.contains(line.id) else {
+			guard model.selection.contains(line.id) else {
 				continue
 			}
 			max = index
@@ -248,7 +190,16 @@ private extension ContentView {
 	}
 
 	var selectedLines: [Line] {
-		document.content.lines.filter { selection.contains($0.id) }
+		document.content.lines.filter { model.selection.contains($0.id) }
+	}
+
+	@discardableResult
+	func handleDrop(_ providers: [NSItemProvider], to target: Int?) -> Bool {
+		Task { @MainActor in
+			let lines = await model.loadLines(from: providers)
+			_ = document.insertLines(lines, to: target)
+		}
+		return true
 	}
 }
 
