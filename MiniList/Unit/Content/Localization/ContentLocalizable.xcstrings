@@ -56,7 +56,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Release to add text as new items."
+            "value" : "The items will be added to this document."
           }
         }
       }
@@ -86,7 +86,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "List is Empty"
+            "value" : "No Items"
           }
         }
       }
