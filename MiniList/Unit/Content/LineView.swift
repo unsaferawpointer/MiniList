@@ -35,6 +35,7 @@ extension LineView: View {
 				.frame(width: 4, height: 4)
 			TextField(ContentStrings.Line.requiredPlaceholder, text: $text)
 				.foregroundStyle(line.isCompleted ? .tertiary : .primary)
+				.font(.body)
 				.focused($focus)
 				.onSubmit {
 					onChange(newValue: text)

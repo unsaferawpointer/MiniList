@@ -20,72 +20,70 @@ struct ContentView: View {
 	@Bindable var model = ContentModel()
 
 	var body: some View {
-		NavigationStack {
-			List(selection: $model.selection) {
-				ForEach($document.content.lines) { $line in
-					LineView(line: $line)
-						.listRowSeparator(.hidden)
-						.listRowInsets(.horizontal, 8)
-						.listRowInsets(.vertical, 6)
-						.draggable(line)
-				}
-				.onMove { indices, target in
-					withAnimation {
-						document.moveLines(indices: indices, to: target)
-					}
-				}
-				.onInsert(of: [.plainText]) { target, providers in
-					_ = handleDrop(providers, to: target)
+		List(selection: $model.selection) {
+			ForEach($document.content.lines) { $line in
+				LineView(line: $line)
+					.listRowSeparator(.hidden)
+					.listRowInsets(.horizontal, 8)
+					.listRowInsets(.vertical, 6)
+					.draggable(line)
+			}
+			.onMove { indices, target in
+				withAnimation {
+					document.moveLines(indices: indices, to: target)
 				}
 			}
-			.onCopyCommand(perform: model.canCopy ? { copy() } : nil)
-			.onCutCommand(perform: model.canCopy ? { cut() } : nil)
-			.onPasteCommand(
-				of: [.plainText],
-				perform: { providers in
-					paste(providers: providers)
-				}
-			)
-			.focusedValue(
-				\.addAction,
-				 ButtonAction(
-					title: ContentStrings.Action.newItemTitle,
-					imageName: "plus",
-					isEnabled: true
-				 ) {
-					 withAnimation {
-						 _ = document.insertLine(with: ContentStrings.Action.newItemTitle)
-					 }
+			.onInsert(of: [.plainText]) { target, providers in
+				_ = handleDrop(providers, to: target)
+			}
+		}
+		.onCopyCommand(perform: model.canCopy ? { copy() } : nil)
+		.onCutCommand(perform: model.canCopy ? { cut() } : nil)
+		.onPasteCommand(
+			of: [.plainText],
+			perform: { providers in
+				paste(providers: providers)
+			}
+		)
+		.focusedValue(
+			\.addAction,
+			 ButtonAction(
+				title: ContentStrings.Action.newItemTitle,
+				imageName: "plus",
+				isEnabled: true
+			 ) {
+				 withAnimation {
+					 _ = document.insertLine(with: ContentStrings.Action.newItemTitle)
 				 }
-			)
-			.focusedValue(
-				\.deleteAction,
-				 ButtonAction(
-					title: ContentStrings.Action.deleteTitle,
-					imageName: "trash",
-					isEnabled: model.isDeletionAvailable
-				 ) {
-					 document.deleteLines(ids: model.selection)
-				 }
-			)
-			.focusedValue(
-				\.completionAction,
-				 ToggleAction(
-					title: ContentStrings.Action.completedTitle,
-					source: sources(for: model.selection),
-					isEnabled: model.isCompletionAvailable
-				 )
-			)
-			.contextMenu(forSelectionType: UUID.self) { selected in
-				buildMenu(selected: selected)
-			}
-			.toolbar {
-				buildToolbar()
-			}
-			.overlay {
-				if document.isEmpty {
-					buildPlaceholder()
-				}
+			 }
+		)
+		.focusedValue(
+			\.deleteAction,
+			 ButtonAction(
+				title: ContentStrings.Action.deleteTitle,
+				imageName: "trash",
+				isEnabled: model.isDeletionAvailable
+			 ) {
+				 document.deleteLines(ids: model.selection)
+			 }
+		)
+		.focusedValue(
+			\.completionAction,
+			 ToggleAction(
+				title: ContentStrings.Action.completedTitle,
+				source: sources(for: model.selection),
+				isEnabled: model.isCompletionAvailable
+			 )
+		)
+		.contextMenu(forSelectionType: UUID.self) { selected in
+			buildMenu(selected: selected)
+		}
+		.toolbar {
+			buildToolbar()
+		}
+		.overlay {
+			if document.isEmpty {
+				buildPlaceholder()
 			}
 		}
 	}
@@ -197,7 +195,9 @@ private extension ContentView {
 	func handleDrop(_ providers: [NSItemProvider], to target: Int?) -> Bool {
 		Task { @MainActor in
 			let lines = await model.loadLines(from: providers)
-			_ = document.insertLines(lines, to: target)
+			withAnimation {
+				_ = document.insertLines(lines, to: target)
+			}
 		}
 		return true
 	}
