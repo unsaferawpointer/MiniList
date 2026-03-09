@@ -60,35 +60,13 @@ extension ListDocument {
 extension ListDocument {
 
 	@discardableResult
-	mutating func insertText(_ strings: [String], to target: Int?) -> Bool {
-		let texts = strings
-			.flatMap { value in
-				value
-					.split(whereSeparator: \.isNewline)
-					.map(String.init)
-					.filter {
-						!$0.isEmpty
-					}
-			}
-
-		let newLines = texts.map { text in
-			Line(isCompleted: false, text: text)
-		}
-		return insertLines(newLines, to: target)
-	}
-
-	@discardableResult
 	mutating func insertLines(_ lines: [Line], to target: Int?) -> Bool {
 		guard !lines.isEmpty else {
 			return false
 		}
 
 		let copiedLines = lines.map { line in
-			Line(
-				isCompleted: line.isCompleted,
-				isMarked: line.isMarked,
-				text: line.text
-			)
+			Line(isCompleted: line.isCompleted, text: line.text)
 		}
 
 		guard let target else {

@@ -7,21 +7,22 @@
 
 import Foundation
 import CoreTransferable
-import UniformTypeIdentifiers
 
 struct Line {
 
 	let uuid: UUID
 	var isCompleted: Bool
-	var isMarked: Bool?
 	var text: String
 
 	// MARK: - Initialization
 
-	nonisolated init(uuid: UUID = UUID(), isCompleted: Bool, isMarked: Bool? = nil, text: String) {
+	nonisolated init(
+		uuid: UUID = UUID(),
+		isCompleted: Bool = false,
+		text: String
+	) {
 		self.uuid = uuid
 		self.isCompleted = isCompleted
-		self.isMarked = isMarked
 		self.text = text
 	}
 }
@@ -33,10 +34,14 @@ extension Line: Codable { }
 extension Line: Transferable {
 
 	static var transferRepresentation: some TransferRepresentation {
-		CodableRepresentation(contentType: .line)
-		ProxyRepresentation(exporting: \.text)
+		ProxyRepresentation { line in
+			TextProcessor().format([line])
+		}
 	}
 }
+
+// MARK: - Hashable
+extension Line: Hashable { }
 
 // MARK: - Identifiable
 extension Line: Identifiable {
@@ -45,8 +50,4 @@ extension Line: Identifiable {
 		uuid
 	}
 }
-// MARK: - UTType
-extension UTType {
 
-	static let line = UTType(exportedAs: "dev.zeroindex.minilist.line")
-}

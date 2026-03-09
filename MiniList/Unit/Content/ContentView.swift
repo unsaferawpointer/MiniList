@@ -8,6 +8,10 @@
 import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
+import CoreTransferable
+#if os(macOS)
+import AppKit
+#endif
 
 struct ContentView: View {
 
@@ -16,7 +20,8 @@ struct ContentView: View {
 	@State private var selection: Set<UUID> = []
 	@State private var isPlaceholderDropTargeted = false
 
-	private let dropManager = DropManager()
+	private let dropManager = PasteboardManager()
+	private let textProcessor = TextProcessor()
 
 	var body: some View {
 		NavigationStack {
@@ -28,26 +33,19 @@ struct ContentView: View {
 						.listRowInsets(.vertical, 6)
 						.draggable(line)
 				}
-				.dropDestination(for: Line.self) { lines, index in
-					withAnimation {
-						_ = document.insertLines(lines, to: index)
-					}
-				}
 				.onMove { indices, target in
 					withAnimation {
 						document.moveLines(indices: indices, to: target)
 					}
 				}
-				.onDelete { indices in
-					withAnimation {
-						document.deleteLines(with: indices)
-					}
+				.onInsert(of: [.plainText]) { target, providers in
+					_ = handleDrop(providers, to: target)
 				}
 			}
 			.onCopyCommand(perform: copyCommand)
 			.onCutCommand(perform: cutCommand)
-			.onPasteCommand(
-				of: [.line, .plainText],
+				.onPasteCommand(
+					of: [.plainText],
 				validator: { providers in
 					validatePaste(providers)
 				},
@@ -158,21 +156,25 @@ private extension ContentView {
 				)
 				.padding(16)
 		}
-		.dropDestination(for: Line.self) { lines, _ in
-			withAnimation {
-				_ = document.insertLines(lines, to: nil)
-			}
-			return true
-		} isTargeted: { isTargeted in
-			withAnimation(.easeInOut(duration: 0.12)) {
-				isPlaceholderDropTargeted = isTargeted
-			}
+		.onDrop(of: [.plainText], isTargeted: $isPlaceholderDropTargeted) { providers in
+			return handleDrop(providers, to: nil)
 		}
 	}
 }
 
 // MARK: - Binding
 private extension ContentView {
+
+	@discardableResult
+	func handleDrop(_ providers: [NSItemProvider], to target: Int?) -> Bool {
+		Task { @MainActor in
+			let lines = await dropManager.lines(from: providers)
+			withAnimation {
+				_ = document.insertLines(lines, to: target)
+			}
+		}
+		return true
+	}
 
 	func sources(for selected: Set<UUID>) -> [Binding<Bool>] {
 		document.content.lines.indices.compactMap { index in
@@ -204,39 +206,18 @@ private extension ContentView {
 	}
 
 	func canPaste(_ providers: [NSItemProvider]) -> Bool {
-		providers.contains { provider in
-			provider.hasItemConformingToTypeIdentifier(UTType.line.identifier) ||
-			provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
-		}
+		dropManager.hasData(in: providers)
 	}
 
 	func validatePaste(_ providers: [NSItemProvider]) -> [NSItemProvider] {
-		providers.filter { provider in
-			provider.hasItemConformingToTypeIdentifier(UTType.line.identifier) ||
-			provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier)
-		}
+		dropManager.filtered(providers: providers)
 	}
 
 	func copy() -> [NSItemProvider] {
 		guard canCopy else {
 			return []
 		}
-		return selectedLines.map { line in
-			let provider = NSItemProvider(object: line.text as NSString)
-			provider.registerDataRepresentation(
-				forTypeIdentifier: UTType.line.identifier,
-				visibility: .all
-			) { completion in
-				do {
-					let data = try JSONEncoder().encode(line)
-					completion(data, nil)
-				} catch {
-					completion(nil, error)
-				}
-				return nil
-			}
-			return provider
-		}
+		return dropManager.providers(for: selectedLines)
 	}
 
 	func cut() -> [NSItemProvider] {
@@ -263,26 +244,11 @@ private extension ContentView {
 			max = index
 			break
 		}
-		pasteProviders(providers, at: max)
+		handleDrop(providers, to: max)
 	}
 
 	var selectedLines: [Line] {
 		document.content.lines.filter { selection.contains($0.id) }
-	}
-}
-
-// MARK: - Drop Support
-private extension ContentView {
-
-	func handleDrop(target: Int, providers: [NSItemProvider]) {
-		pasteProviders(providers, at: target)
-	}
-
-	func pasteProviders(_ providers: [NSItemProvider], at target: Int?) {
-		Task { @MainActor in
-			let lines = await dropManager.lines(from: providers)
-			document.insertLines(lines, to: target)
-		}
 	}
 }
 
