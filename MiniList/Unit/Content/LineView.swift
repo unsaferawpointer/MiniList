@@ -36,6 +36,7 @@ extension LineView: View {
 						? .tertiary
 						: line.iconColor?.color ?? .tertiary
 				)
+				.symbolColorRenderingMode(.gradient)
 				.font(.footnote)
 				.frame(width: 12, alignment: .center)
 			TextField(ContentStrings.Line.requiredPlaceholder, text: $text)
